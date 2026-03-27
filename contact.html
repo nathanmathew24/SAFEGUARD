@@ -168,25 +168,34 @@ nav .menu a:hover { color:#938875; }
   color: #c9ae5d;
 }
 
-/* ====== Tally Form Styles ====== */
+/* ====== Lead Form Styles ====== */
 .contact-form {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
 }
 
-.tally-wrapper {
-  width: 100%;
-  border-radius: 12px;
-  overflow: hidden;
+#leadForm { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+#leadForm input,
+#leadForm textarea {
+  width: 100%; padding: 14px 16px; border-radius: 8px;
+  border: 1px solid rgba(201,174,93,0.3);
+  background: rgba(255,255,255,0.05); color: #fff;
+  font-family: 'Cormorant Garamond', serif; font-size: 1rem;
+  outline: none; transition: border 0.3s; box-sizing: border-box;
 }
-
-/* Override Tally's default iframe background to match site */
-.tally-wrapper iframe {
-  background: transparent !important;
-  border: none !important;
-  border-radius: 12px;
+#leadForm input:focus,
+#leadForm textarea:focus { border-color: #c9ae5d; }
+#leadForm input::placeholder,
+#leadForm textarea::placeholder { color: rgba(255,255,255,0.4); }
+#leadForm button {
+  padding: 14px; background: linear-gradient(135deg, #c8ae46, #bba527);
+  color: #fff; font-size: 1rem; font-weight: 600; border: none;
+  border-radius: 35px; cursor: pointer; transition: all 0.3s;
+  box-shadow: 0 0 20px rgba(255,214,49,0.4);
 }
+#leadForm button:hover { box-shadow: 0 0 28px rgba(255,214,49,0.8); transform: translateY(-2px); }
+#leadForm button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
 @media (max-width: 768px) {
   .contact-wrapper {
@@ -298,7 +307,7 @@ nav .menu a:hover { color:#938875; }
       <p><i class="fas fa-envelope"></i> <a href="mailto:cs@funoonfzc.com">cs@funoonfzc.com</a></p>
       <p><i class="fas fa-phone"></i> <a href="tel:+971507562833">+971 50 756 2833</a></p>
       <p><i class="fas fa-map-marker-alt"></i> Funoon FZC Office, Sharjah, UAE</p>
-      
+
       <h3 style="margin-top: 40px;">Follow Us</h3>
       <div class="social-icons">
         <a href="https://instagram.com/funoonfzc" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
@@ -307,11 +316,18 @@ nav .menu a:hover { color:#938875; }
       </div>
     </div>
 
-    <!-- Tally Form replacing the old HTML form -->
     <div class="contact-form">
-      <div class="tally-wrapper">
-       <iframe src="https://tally.so/embed/RG0ll4" width="100%" height="600" frameborder="0"></iframe>
-      </div>
+      <form id="leadForm">
+        <div style="display:flex; gap:16px; flex-wrap:wrap;">
+          <input type="text" id="f-name" placeholder="Full Name *" required style="flex:1; min-width:120px;">
+          <input type="text" id="f-company" placeholder="Company *" required style="flex:1; min-width:120px;">
+        </div>
+        <input type="email" id="f-email" placeholder="Email *" required>
+        <input type="text" id="f-phone" placeholder="Phone (with country code)">
+        <textarea id="f-message" placeholder="How can we help you?" rows="5"></textarea>
+        <button type="submit" id="f-btn">Send Message</button>
+        <p id="f-status" style="margin-top:12px; font-size:0.95rem;"></p>
+      </form>
     </div>
   </div>
 </main>
@@ -349,7 +365,7 @@ nav .menu a:hover { color:#938875; }
         <p><a href="mailto:cs@funoonfzc.com" aria-label="Email"><i class="fas fa-envelope"></i> cs@funoonfzc.com</a></p>
         <p><a href="tel:+971507562833" aria-label="Phone"><i class="fas fa-phone"></i> +971 50 756 2833</a></p>
         <p><i class="fas fa-map-marker-alt"></i> Funoon FZC Office, Sharjah, UAE</p>
-        <iframe 
+        <iframe
           src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3606.4513862554345!2d55.48858149999999!3d25.322630000000004!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e5f5f5df14e533d%3A0x73cc61cd6d65a7e3!2sSharjah%20Research%20Technology%20and%20Innovation%20Park!5e0!3m2!1sen!2sae!4v1758697862070!5m2!1sen!2sae"
           width="100%" height="160" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
         </iframe>
@@ -364,10 +380,46 @@ nav .menu a:hover { color:#938875; }
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 
-<!-- Tally Embed Script (makes dynamicHeight & transparentBackground work) -->
-<script>var d=document,w="https://tally.so/widgets/embed.js",v=function(){"undefined"!=typeof Tally?Tally.loadEmbeds():d.querySelectorAll("iframe[data-tally-src]:not([src])").forEach((function(e){e.src=e.dataset.tallySrc}))};if("undefined"!=typeof Tally)v();else if(d.querySelector('script[src="'+w+'"]')==null){var s=d.createElement("script");s.src=w,s.onload=v,s.onerror=v,d.body.appendChild(s);}</script>
-
 <script>
+// Form submission
+document.getElementById("leadForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById("f-btn");
+  const status = document.getElementById("f-status");
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+  status.textContent = "";
+
+  try {
+    const res = await fetch("https://funoon-leads.vercel.app/lead", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name:    document.getElementById("f-name").value,
+        company: document.getElementById("f-company").value,
+        email:   document.getElementById("f-email").value,
+        phone:   document.getElementById("f-phone").value,
+        message: document.getElementById("f-message").value,
+        source:  "Website"
+      })
+    });
+
+    if (res.ok) {
+      status.style.color = "#c9ae5d";
+      status.textContent = "Message sent! We'll be in touch soon.";
+      this.reset();
+    } else {
+      throw new Error("Server error");
+    }
+  } catch (err) {
+    status.style.color = "#ff6b6b";
+    status.textContent = "Something went wrong. Please email us directly.";
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Send Message";
+});
+
 // DOM Load
 document.addEventListener("DOMContentLoaded", () => {
   const nav = document.querySelector("nav");
@@ -376,7 +428,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const mobileMenu = document.getElementById("mobileMenu");
   const closeBtn = mobileMenu.querySelector(".close-btn");
 
-  // Animate navbar
   setTimeout(() => {
     nav.style.opacity = "1";
     nav.style.transform = "translateX(-50%) translateY(0)";
@@ -384,7 +435,6 @@ document.addEventListener("DOMContentLoaded", () => {
     logo.style.top = "0";
   }, 200);
 
-  // Hamburger menu
   function toggleMenu() {
     hamburger.classList.toggle("active");
     mobileMenu.classList.toggle("show");
@@ -401,7 +451,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.toggleMenu = toggleMenu;
   window.closeMenu = closeMenu;
 
-  // Scroll animations
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry, index) => {
       if (entry.isIntersecting) {
@@ -453,7 +502,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const sy = (Math.random() - 0.5) * 35;
     const sz = (Math.random() - 0.5) * 100;
     const scale = 0.4 + Math.random() * 1.2;
-    
+
     const geom = type === 0 ? sphereGeo : boxGeo;
     const mat = type === 0 ? matGold : matGrey;
     const m = new THREE.Mesh(geom, mat);
