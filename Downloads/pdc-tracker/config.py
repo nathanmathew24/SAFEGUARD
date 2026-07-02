@@ -4,6 +4,7 @@ from datetime import timedelta
 
 class Config:
     SECRET_KEY = os.environ["JWT_SECRET"]
+    JWT_SECRET = os.environ["JWT_SECRET"]
     SQLALCHEMY_DATABASE_URI = os.environ["DATABASE_URL"]
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
@@ -15,7 +16,13 @@ class Config:
     RATELIMIT_DEFAULT = "100 per minute"
     RATELIMIT_HEADERS_ENABLED = True
 
-    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB
+    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB (Werkzeug hard limit)
+    UPLOAD_MAX_BYTES = 10 * 1024 * 1024    # 10 MB enforced per-endpoint
+    UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "uploads")
+    ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY", "")
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+    EXTRACTION_MODEL = os.environ.get("EXTRACTION_MODEL", "claude-sonnet-4-6")
+    CONFIDENCE_THRESHOLD = 0.85
 
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
@@ -31,6 +38,8 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
+    UPLOAD_DIR = os.environ.get("TEST_UPLOAD_DIR", "test_uploads")
+    ANTHROPIC_API_KEY = "test-key-not-real"
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "TEST_DATABASE_URL", os.environ.get("DATABASE_URL", "")
     )

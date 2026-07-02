@@ -28,6 +28,7 @@ def create_app(config_object=None):
             document_sequence, line_item,
             invoice, purchase_invoice, lpo, quotation,
             credit_note, debit_note, delivery_note, pdc, receipt_voucher,
+            uploaded_file, extraction_review, extraction_log,
         )
 
         # Register document types in the service registry
@@ -60,6 +61,13 @@ def create_app(config_object=None):
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(audit_bp, url_prefix="/api")
+
+    # Phase 3 upload + extraction blueprints
+    from app.api.upload import upload_bp
+    from app.api.extractions import extractions_bp
+
+    app.register_blueprint(upload_bp)
+    app.register_blueprint(extractions_bp)
 
     # Phase 2 document blueprints
     from app.api.documents import make_document_blueprint

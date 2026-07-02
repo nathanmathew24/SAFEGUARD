@@ -4,7 +4,7 @@ import pytest
 # Set env vars before any app import
 os.environ.setdefault("DATABASE_URL", os.environ.get("TEST_DATABASE_URL", "postgresql://docflow:password@localhost:5432/docflow_test"))
 os.environ.setdefault("JWT_SECRET", "test-secret-key-for-testing-only-not-real")
-os.environ.setdefault("ENCRYPTION_KEY", "test-encryption-key-32-bytes-ok!")
+os.environ.setdefault("ENCRYPTION_KEY", "m-lW27FJeq-X-JRYz80HIdvVHyGb_19X7X05P_xLES4=")  # valid Fernet key
 os.environ.setdefault("FLASK_ENV", "testing")
 
 from app import create_app  # noqa: E402
@@ -21,6 +21,7 @@ def app():
     # Drop everything first so enum types and tables are always recreated clean
     _db.session.execute(_db.text("""
         DROP TABLE IF EXISTS
+            extraction_logs, extraction_reviews, uploaded_files,
             line_items, receipt_vouchers, pdcs, delivery_notes,
             debit_notes, credit_notes, quotations, lpos,
             purchase_invoices, invoices, document_sequences,
@@ -29,7 +30,8 @@ def app():
     """))
     _db.session.execute(_db.text(
         "DROP TYPE IF EXISTS auditaction, userrole, docstatus, invoicetype, "
-        "paymentmethod, paymentstatus, pdcstatus, rvpaymentmethod CASCADE"
+        "paymentmethod, paymentstatus, pdcstatus, rvpaymentmethod, "
+        "extractionstatus, reviewstatus CASCADE"
     ))
     _db.session.commit()
     _db.create_all()
@@ -37,6 +39,7 @@ def app():
     # Raw SQL teardown — CASCADE handles FK dependencies
     _db.session.execute(_db.text("""
         DROP TABLE IF EXISTS
+            extraction_logs, extraction_reviews, uploaded_files,
             line_items, receipt_vouchers, pdcs, delivery_notes,
             debit_notes, credit_notes, quotations, lpos,
             purchase_invoices, invoices, document_sequences,
@@ -45,7 +48,8 @@ def app():
     """))
     _db.session.execute(_db.text(
         "DROP TYPE IF EXISTS auditaction, userrole, docstatus, invoicetype, "
-        "paymentmethod, paymentstatus, pdcstatus, rvpaymentmethod CASCADE"
+        "paymentmethod, paymentstatus, pdcstatus, rvpaymentmethod, "
+        "extractionstatus, reviewstatus CASCADE"
     ))
     _db.session.commit()
     ctx.pop()
@@ -69,6 +73,7 @@ def db_cleanup(app):
     _db.session.remove()
     _db.session.execute(_db.text("""
         TRUNCATE TABLE
+            extraction_logs, extraction_reviews, uploaded_files,
             line_items, receipt_vouchers, pdcs, delivery_notes,
             debit_notes, credit_notes, quotations, lpos,
             purchase_invoices, invoices, document_sequences,
