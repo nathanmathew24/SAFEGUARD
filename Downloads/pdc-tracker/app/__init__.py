@@ -23,9 +23,36 @@ def create_app(config_object=None):
 
     # Import models so Alembic/migrate detects them
     with app.app_context():
-        from app.models import company, user, refresh_token, audit_log  # noqa: F401
+        from app.models import (  # noqa: F401
+            company, user, refresh_token, audit_log,
+            document_sequence, line_item,
+            invoice, purchase_invoice, lpo, quotation,
+            credit_note, debit_note, delivery_note, pdc, receipt_voucher,
+        )
 
-    # Blueprints
+        # Register document types in the service registry
+        from app.services.document_service import register_doc_type
+        from app.models.invoice import Invoice
+        from app.models.purchase_invoice import PurchaseInvoice
+        from app.models.lpo import LPO
+        from app.models.quotation import Quotation
+        from app.models.credit_note import CreditNote
+        from app.models.debit_note import DebitNote
+        from app.models.delivery_note import DeliveryNote
+        from app.models.pdc import PDC
+        from app.models.receipt_voucher import ReceiptVoucher
+
+        register_doc_type("invoice", Invoice, "invoice", has_line_items=True)
+        register_doc_type("purchase_invoice", PurchaseInvoice, "purchase_invoice", has_line_items=True)
+        register_doc_type("lpo", LPO, "lpo", has_line_items=True)
+        register_doc_type("quotation", Quotation, "quotation", has_line_items=True)
+        register_doc_type("credit_note", CreditNote, "credit_note", has_line_items=True)
+        register_doc_type("debit_note", DebitNote, "debit_note", has_line_items=True)
+        register_doc_type("delivery_note", DeliveryNote, "delivery_note", has_line_items=False)
+        register_doc_type("pdc", PDC, "pdc", has_line_items=False)
+        register_doc_type("receipt_voucher", ReceiptVoucher, "receipt_voucher", has_line_items=False)
+
+    # Phase 1 blueprints
     from app.api.health import health_bp
     from app.api.auth import auth_bp
     from app.api.audit import audit_bp
@@ -33,6 +60,24 @@ def create_app(config_object=None):
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(audit_bp, url_prefix="/api")
+
+    # Phase 2 document blueprints
+    from app.api.documents import make_document_blueprint
+
+    doc_blueprints = [
+        ("invoice",          "/api/invoices"),
+        ("purchase_invoice", "/api/purchase-invoices"),
+        ("lpo",              "/api/lpos"),
+        ("quotation",        "/api/quotations"),
+        ("credit_note",      "/api/credit-notes"),
+        ("debit_note",       "/api/debit-notes"),
+        ("delivery_note",    "/api/delivery-notes"),
+        ("pdc",              "/api/pdcs"),
+        ("receipt_voucher",  "/api/receipt-vouchers"),
+    ]
+    for slug, prefix in doc_blueprints:
+        bp = make_document_blueprint(slug, prefix)
+        app.register_blueprint(bp)
 
     # Global error handlers — never expose internals
     from app.utils.errors import register_error_handlers
