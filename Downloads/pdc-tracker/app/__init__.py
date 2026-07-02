@@ -29,6 +29,7 @@ def create_app(config_object=None):
             invoice, purchase_invoice, lpo, quotation,
             credit_note, debit_note, delivery_note, pdc, receipt_voucher,
             uploaded_file, extraction_review, extraction_log,
+            generated_pdf,
         )
 
         # Register document types in the service registry
@@ -86,6 +87,10 @@ def create_app(config_object=None):
     for slug, prefix in doc_blueprints:
         bp = make_document_blueprint(slug, prefix)
         app.register_blueprint(bp)
+
+    # Phase 5 PDF generation
+    from app.api.pdf import pdf_bp
+    app.register_blueprint(pdf_bp)
 
     # Phase 4 PDC endpoints
     from app.api.pdc import pdc_bp

@@ -1,0 +1,12 @@
+{% extends "pdf/base.html" %}
+{% from "pdf/_line_items_table.html" import line_items_table, totals_block %}
+
+{% block title_en %}Local Purchase Order{% endblock %}
+{% block title_ar %}أمر شراء محلي{% endblock %}
+{% block from_label_en %}Buyer / المشتري{% endblock %}
+{% block to_label_en %}Supplier / المورد{% endblock %}
+
+{% block body %}
+{{ line_items_table(line_items) }}
+{{ totals_block(doc) }}
+{% endblock %}

@@ -17,6 +17,9 @@ pdf2image==1.17.0
 filetype==1.2.0
 cryptography==49.0.0
 
+# Phase 5 — PDF generation
+weasyprint==68.0
+
 # Phase 4 — PDC tracking & scheduling
 APScheduler==3.10.4
 requests==2.33.0

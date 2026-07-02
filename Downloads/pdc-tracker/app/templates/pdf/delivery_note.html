@@ -1,0 +1,43 @@
+{% extends "pdf/base.html" %}
+
+{% block title_en %}Delivery Note{% endblock %}
+{% block title_ar %}مذكرة توصيل{% endblock %}
+{% block to_label_en %}Delivered To / تسليم إلى{% endblock %}
+
+{% block body %}
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Description / الوصف</th>
+      <th class="right">Qty / الكمية</th>
+      <th>Unit / الوحدة</th>
+      <th>Notes / ملاحظات</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for li in line_items %}
+    <tr>
+      <td class="center">{{ loop.index }}</td>
+      <td>{{ li.description | e }}</td>
+      <td class="right">{{ li.quantity }}</td>
+      <td></td>
+      <td></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div style="margin-top:30px; display:flex; justify-content:space-between; font-size:9pt; color:#555;">
+  <div>
+    <p>Received By / استلم بواسطة: ____________________</p>
+    <p style="margin-top:6px">Signature / التوقيع: ____________________</p>
+    <p style="margin-top:6px">Date / التاريخ: ____________________</p>
+  </div>
+  <div style="text-align:right">
+    <p>Delivered By / سلّم بواسطة: ____________________</p>
+    <p style="margin-top:6px">Signature / التوقيع: ____________________</p>
+    <p style="margin-top:6px">Date / التاريخ: ____________________</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "pdf/base.html" %}
+{% from "pdf/_line_items_table.html" import line_items_table, totals_block %}
+
+{% block title_en %}Quotation{% endblock %}
+{% block title_ar %}عرض سعر{% endblock %}
+{% block to_label_en %}Client / العميل{% endblock %}
+
+{% block body %}
+{{ line_items_table(line_items) }}
+{{ totals_block(doc) }}
+{% if doc.valid_until %}
+<div class="notes">
+  <strong>Valid Until / صالح حتى:</strong> {{ doc.valid_until | e }}
+</div>
+{% endif %}
+{% endblock %}

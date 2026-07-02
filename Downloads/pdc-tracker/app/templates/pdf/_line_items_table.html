@@ -1,0 +1,39 @@
+{# Reusable line items table macro — included by templates that have line items #}
+{% macro line_items_table(lines) %}
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Description / الوصف</th>
+      <th class="right">Qty</th>
+      <th class="right">Unit Price / سعر الوحدة (AED)</th>
+      <th class="right">Discount (AED)</th>
+      <th class="right">VAT %</th>
+      <th class="right">Total / الإجمالي (AED)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for li in lines %}
+    <tr>
+      <td class="center">{{ loop.index }}</td>
+      <td>{{ li.description | e }}</td>
+      <td class="right">{{ li.quantity }}</td>
+      <td class="right">{{ "%.2f" | format(li.unit_price / 100) }}</td>
+      <td class="right">{{ "%.2f" | format(li.discount_amount / 100) }}</td>
+      <td class="right">{{ "%.1f" | format(li.tax_rate_bp / 100) }}%</td>
+      <td class="right">{{ "%.2f" | format(li.line_total / 100) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% macro totals_block(doc) %}
+<div class="totals">
+  <table>
+    <tr><td>Subtotal / المجموع الفرعي</td><td>AED {{ "%.2f" | format(doc.subtotal_amount / 100) }}</td></tr>
+    <tr><td>VAT 5% / ضريبة القيمة المضافة</td><td>AED {{ "%.2f" | format(doc.tax_amount / 100) }}</td></tr>
+    <tr class="grand-total"><td>Total / الإجمالي الكلي</td><td>AED {{ "%.2f" | format(doc.total_amount / 100) }}</td></tr>
+  </table>
+</div>
+{% endmacro %}

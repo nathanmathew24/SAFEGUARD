@@ -1,0 +1,51 @@
+{% extends "pdf/base.html" %}
+
+{% block title_en %}Receipt Voucher{% endblock %}
+{% block title_ar %}سند قبض{% endblock %}
+{% block from_label_en %}Received From / مستلم من{% endblock %}
+
+{% block body %}
+<div style="background:#f5f7fa; border-radius:4px; padding:14px; margin-bottom:14px;">
+  <table style="margin-bottom:0">
+    <tbody>
+      <tr>
+        <td style="width:40%; color:#555; padding:5px 6px;">Received From / استُلم من</td>
+        <td style="padding:5px 6px; font-weight:bold;">{{ doc.received_from | e }}</td>
+      </tr>
+      <tr>
+        <td style="color:#555; padding:5px 6px;">Amount / المبلغ</td>
+        <td style="padding:5px 6px; font-weight:bold; font-size:13pt; color:#1a3c5e;">
+          AED {{ "%.2f" | format(doc.amount / 100) }}
+        </td>
+      </tr>
+      <tr>
+        <td style="color:#555; padding:5px 6px;">Payment Method / طريقة الدفع</td>
+        <td style="padding:5px 6px;">{{ doc.payment_method | e }}</td>
+      </tr>
+      {% if doc.bank_reference %}
+      <tr>
+        <td style="color:#555; padding:5px 6px;">Bank Reference / مرجع بنكي</td>
+        <td style="padding:5px 6px;">{{ doc.bank_reference | e }}</td>
+      </tr>
+      {% endif %}
+      {% if doc.linked_invoice_id %}
+      <tr>
+        <td style="color:#555; padding:5px 6px;">Against Invoice / مقابل فاتورة</td>
+        <td style="padding:5px 6px;">#{{ doc.linked_invoice_id }}</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<div style="margin-top:40px; display:flex; justify-content:space-between; font-size:9pt; color:#555;">
+  <div>
+    <p>Received By / استلم بواسطة: ____________________</p>
+    <p style="margin-top:6px">Signature / التوقيع: ____________________</p>
+  </div>
+  <div style="text-align:right">
+    <p>Authorised By / اعتمد بواسطة: ____________________</p>
+    <p style="margin-top:6px">Signature / التوقيع: ____________________</p>
+  </div>
+</div>
+{% endblock %}

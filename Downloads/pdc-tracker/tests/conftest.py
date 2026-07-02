@@ -1,5 +1,12 @@
+import sys
+import types
 import os
 import pytest
+
+# Stub out weasyprint before any app import — GTK libs not available on Windows CI
+_wp_stub = types.ModuleType("weasyprint")
+_wp_stub.HTML = None  # replaced by mocks in individual tests
+sys.modules.setdefault("weasyprint", _wp_stub)
 
 # Set env vars before any app import
 os.environ.setdefault("DATABASE_URL", os.environ.get("TEST_DATABASE_URL", "postgresql://docflow:password@localhost:5432/docflow_test"))
@@ -23,6 +30,7 @@ def app():
     # Drop everything first so enum types and tables are always recreated clean
     _db.session.execute(_db.text("""
         DROP TABLE IF EXISTS
+            generated_pdfs,
             extraction_logs, extraction_reviews, uploaded_files,
             line_items, receipt_vouchers, pdcs, delivery_notes,
             debit_notes, credit_notes, quotations, lpos,
@@ -41,6 +49,7 @@ def app():
     # Raw SQL teardown — CASCADE handles FK dependencies
     _db.session.execute(_db.text("""
         DROP TABLE IF EXISTS
+            generated_pdfs,
             extraction_logs, extraction_reviews, uploaded_files,
             line_items, receipt_vouchers, pdcs, delivery_notes,
             debit_notes, credit_notes, quotations, lpos,
@@ -75,6 +84,7 @@ def db_cleanup(app):
     _db.session.remove()
     _db.session.execute(_db.text("""
         TRUNCATE TABLE
+            generated_pdfs,
             extraction_logs, extraction_reviews, uploaded_files,
             line_items, receipt_vouchers, pdcs, delivery_notes,
             debit_notes, credit_notes, quotations, lpos,

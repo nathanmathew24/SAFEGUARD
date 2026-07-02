@@ -1,0 +1,15 @@
+{% extends "pdf/base.html" %}
+{% from "pdf/_line_items_table.html" import line_items_table, totals_block %}
+
+{% block title_en %}Debit Note{% endblock %}
+{% block title_ar %}إشعار مدين{% endblock %}
+
+{% block body %}
+{{ line_items_table(line_items) }}
+{{ totals_block(doc) }}
+{% if doc.reference_number %}
+<div class="notes">
+  <strong>Original Invoice Ref / مرجع الفاتورة الأصلية:</strong> {{ doc.reference_number | e }}
+</div>
+{% endif %}
+{% endblock %}
