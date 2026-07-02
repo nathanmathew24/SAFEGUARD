@@ -87,6 +87,15 @@ def create_app(config_object=None):
         bp = make_document_blueprint(slug, prefix)
         app.register_blueprint(bp)
 
+    # Phase 4 PDC endpoints
+    from app.api.pdc import pdc_bp
+    app.register_blueprint(pdc_bp)
+
+    # Phase 4 scheduler — only start in non-testing environments
+    if not app.config.get("TESTING", False):
+        from app.services.scheduler_service import init_scheduler
+        init_scheduler(app)
+
     # Global error handlers — never expose internals
     from app.utils.errors import register_error_handlers
 

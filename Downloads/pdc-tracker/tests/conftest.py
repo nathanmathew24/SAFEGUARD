@@ -6,6 +6,8 @@ os.environ.setdefault("DATABASE_URL", os.environ.get("TEST_DATABASE_URL", "postg
 os.environ.setdefault("JWT_SECRET", "test-secret-key-for-testing-only-not-real")
 os.environ.setdefault("ENCRYPTION_KEY", "m-lW27FJeq-X-JRYz80HIdvVHyGb_19X7X05P_xLES4=")  # valid Fernet key
 os.environ.setdefault("FLASK_ENV", "testing")
+os.environ.setdefault("WHATSAPP_TOKEN", "")
+os.environ.setdefault("WHATSAPP_PHONE_ID", "")
 
 from app import create_app  # noqa: E402
 from app.extensions import db as _db  # noqa: E402
@@ -31,7 +33,7 @@ def app():
     _db.session.execute(_db.text(
         "DROP TYPE IF EXISTS auditaction, userrole, docstatus, invoicetype, "
         "paymentmethod, paymentstatus, pdcstatus, rvpaymentmethod, "
-        "extractionstatus, reviewstatus CASCADE"
+        "extractionstatus, reviewstatus, pdcdirection CASCADE"
     ))
     _db.session.commit()
     _db.create_all()
@@ -49,7 +51,7 @@ def app():
     _db.session.execute(_db.text(
         "DROP TYPE IF EXISTS auditaction, userrole, docstatus, invoicetype, "
         "paymentmethod, paymentstatus, pdcstatus, rvpaymentmethod, "
-        "extractionstatus, reviewstatus CASCADE"
+        "extractionstatus, reviewstatus, pdcdirection CASCADE"
     ))
     _db.session.commit()
     ctx.pop()
@@ -91,6 +93,10 @@ def company(db):
         name="Test Trading LLC",
         trade_license_no="TL-001",
         trn="100123456700003",
+        owner_whatsapp="+971501234567",
+        finance_whatsapp="+971507654321",
+        pdc_reminder_days_received=3,
+        pdc_reminder_days_issued=5,
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
     )
