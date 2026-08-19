@@ -6,23 +6,25 @@ import logging
 from datetime import date
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
 logger = logging.getLogger(__name__)
 
 _scheduler: BackgroundScheduler | None = None
+_app = None  # module-level ref avoids pickle issues with SQLAlchemy job store
 
 
 def init_scheduler(app) -> None:
-    global _scheduler
+    global _scheduler, _app
     if _scheduler is not None:
         return
 
-    db_url = app.config["SQLALCHEMY_DATABASE_URI"]
-    jobstores = {
-        "default": SQLAlchemyJobStore(url=db_url, tablename="apscheduler_jobs"),
-    }
-    _scheduler = BackgroundScheduler(jobstores=jobstores, timezone="UTC")
+    import os
+    if app.config.get("TESTING") or os.environ.get("SCHEDULER_ENABLED", "true").lower() == "false":
+        return
+
+    _app = app
+    # MemoryJobStore avoids pickling the app object; jobs are re-added on every start
+    _scheduler = BackgroundScheduler(timezone="UTC")
 
     # Daily 04:00 UTC = 08:00 UAE
     _scheduler.add_job(
@@ -32,7 +34,6 @@ def init_scheduler(app) -> None:
         minute=0,
         id="pdc_reminder_daily",
         replace_existing=True,
-        args=[app],
     )
     # Daily 04:30 UTC = 08:30 UAE
     _scheduler.add_job(
@@ -42,11 +43,10 @@ def init_scheduler(app) -> None:
         minute=30,
         id="overdue_scan_daily",
         replace_existing=True,
-        args=[app],
     )
 
     _scheduler.start()
-    logger.info("APScheduler started with PostgreSQL job store")
+    logger.info("APScheduler started")
 
 
 def shutdown_scheduler() -> None:
@@ -58,12 +58,12 @@ def shutdown_scheduler() -> None:
 
 # ── Job implementations ───────────────────────────────────────────────────────
 
-def _pdc_reminder_job(app) -> None:
+def _pdc_reminder_job(app=None) -> None:
     """
     Scan pending PDCs where cheque_date is within reminder window
     and reminder has not yet been sent.
     """
-    with app.app_context():
+    with (app or _app).app_context():
         try:
             from app.models.pdc import PDC
             from app.models.company import Company
@@ -121,12 +121,12 @@ def _pdc_reminder_job(app) -> None:
             logger.exception("pdc_reminder_job failed")
 
 
-def _overdue_scan_job(app) -> None:
+def _overdue_scan_job(app=None) -> None:
     """
     Scan invoices past due_date that are still unpaid — log each to audit.
     PDCs past cheque_date and still pending are also logged.
     """
-    with app.app_context():
+    with (app or _app).app_context():
         try:
             from app.models.invoice import Invoice
             from app.models.purchase_invoice import PurchaseInvoice
