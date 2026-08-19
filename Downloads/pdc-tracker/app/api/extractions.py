@@ -14,10 +14,11 @@ extractions_bp = Blueprint("extractions", __name__)
 def trigger_extraction():
     data = request.get_json(silent=True) or {}
     upload_id = data.get("upload_id")
-    company_id = data.get("company_id")
 
-    if not upload_id or not company_id:
-        return error_response("VALIDATION_ERROR", "upload_id and company_id required", 422)
+    if not upload_id:
+        return error_response("VALIDATION_ERROR", "upload_id required", 422)
+
+    company_id = g.current_user.company_id
 
     try:
         result = extraction_service.run_extraction(
@@ -29,6 +30,8 @@ def trigger_extraction():
     except ValueError as exc:
         return error_response("EXTRACTION_FAILED", str(exc), 422)
     except Exception:
+        from flask import current_app
+        current_app.logger.exception("Extraction pipeline error for upload_id=%s", upload_id)
         return error_response("EXTRACTION_FAILED", "Extraction pipeline failed", 500)
 
 
@@ -36,15 +39,13 @@ def trigger_extraction():
 @jwt_required
 @require_role(UserRole.owner, UserRole.finance_manager)
 def list_pending():
-    company_id = request.args.get("company_id", type=int)
-    if not company_id:
-        return error_response("VALIDATION_ERROR", "company_id required", 422)
+    company_id = g.current_user.company_id
     page = request.args.get("page", 1, type=int)
     per_page = min(request.args.get("per_page", 20, type=int), 100)
 
     items, total = extraction_service.list_pending_reviews(company_id, page, per_page)
     return {
-        "data": [r.to_dict() for r in items],
+        "data": [item.to_dict() for item in items],
         "total": total,
         "page": page,
         "per_page": per_page,
@@ -56,7 +57,7 @@ def list_pending():
 @require_role(UserRole.owner, UserRole.finance_manager)
 def get_review(review_id):
     review = extraction_service.get_review(review_id)
-    if review is None:
+    if review is None or review.company_id != g.current_user.company_id:
         return error_response("NOT_FOUND", "Review not found", 404)
     return review.to_dict(), 200
 
@@ -66,17 +67,14 @@ def get_review(review_id):
 @require_role(UserRole.owner, UserRole.finance_manager)
 def approve_review(review_id):
     data = request.get_json(silent=True) or {}
-    company_id = data.get("company_id")
-    if not company_id:
-        return error_response("VALIDATION_ERROR", "company_id required", 422)
-
-    corrected = data.get("corrected_fields", {})
+    company_id = g.current_user.company_id
+    corrected = data.get("corrected_fields", data.get("extracted_data", {}))
     try:
         doc_id = extraction_service.approve_review(
             review_id=review_id,
             corrected_fields=corrected,
             user_id=g.current_user.id,
-            company_id=int(company_id),
+            company_id=company_id,
         )
         return {"document_id": doc_id}, 200
     except ValueError as exc:
@@ -88,19 +86,15 @@ def approve_review(review_id):
 @require_role(UserRole.owner, UserRole.finance_manager)
 def reject_review(review_id):
     data = request.get_json(silent=True) or {}
-    company_id = data.get("company_id")
-    reason = (data.get("reason") or "").strip()
-    if not company_id:
-        return error_response("VALIDATION_ERROR", "company_id required", 422)
-    if not reason:
-        return error_response("VALIDATION_ERROR", "reason required", 422)
+    company_id = g.current_user.company_id
+    reason = (data.get("reason") or "rejected").strip()
 
     try:
         extraction_service.reject_review(
             review_id=review_id,
             reason=reason,
             user_id=g.current_user.id,
-            company_id=int(company_id),
+            company_id=company_id,
         )
         return {"status": "rejected"}, 200
     except ValueError as exc:

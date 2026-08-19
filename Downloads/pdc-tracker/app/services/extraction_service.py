@@ -66,14 +66,22 @@ def run_extraction(upload_id: int, company_id: int, user_id: int) -> dict:
 
         # 2. OCR / text extraction
         text = extract_text(file_bytes, uf.mime_type)
-        if not text.strip():
-            raise ValueError("Could not extract text from document")
+        if not text.strip() or text.startswith("[Image OCR unavailable"):
+            # OCR failed or Tesseract not installed — send to human review
+            result = _create_review(upload_id, company_id, "unknown", "", {}, ["all_fields"])
+            uf.extraction_status = "completed"
+            db.session.commit()
+            return result
 
         # 3. Classify
         classify_result = classifier.classify(text, upload_id)
         doc_type = classify_result["document_type"]
         if doc_type == "unknown":
-            raise ValueError("Could not classify document type")
+            # Could not classify — send to human review with raw text
+            result = _create_review(upload_id, company_id, "unknown", text, {}, ["doc_type"])
+            uf.extraction_status = "completed"
+            db.session.commit()
+            return result
 
         # 4. Extract fields
         extract_result = document_extractor.extract(text, doc_type, upload_id)
@@ -85,7 +93,7 @@ def run_extraction(upload_id: int, company_id: int, user_id: int) -> dict:
         if not valid:
             raise ValueError(f"Extracted data invalid: {'; '.join(errors)}")
 
-        # 6. Route: auto-create or human review
+        # 6. Route: auto-create when all fields are high-confidence, else human review
         if low_conf:
             result = _create_review(
                 upload_id, company_id, doc_type, text, fields, low_conf
@@ -131,11 +139,32 @@ def _create_review(
     }
 
 
+_VALID_INVOICE_TYPES = {"standard", "proforma", "tax_invoice"}
+
+
 def _auto_create_document(doc_type, fields, company_id, user_id) -> int:
     """Create a Phase 2 document from extracted fields."""
     from app.utils.ip import get_client_ip
+    from app.agents.document_extractor import _MONEY_FIELDS as _MF
     values = flatten_values(fields)
     values["company_id"] = company_id
+
+    # Convert AED dirhams → integer fils for DB storage
+    for mf in _MF:
+        if mf in values and values[mf] is not None:
+            try:
+                values[mf] = round(float(values[mf]) * 100)
+            except (ValueError, TypeError):
+                values.pop(mf, None)
+
+    # Sanitize invoice_type enum — only valid DB values allowed
+    if "invoice_type" in values and values["invoice_type"] not in _VALID_INVOICE_TYPES:
+        values["invoice_type"] = "standard"
+
+    # Sanitize payment_method enum — unrecognised values default to None (nullable)
+    _VALID_PAYMENT_METHODS = {"cash", "bank_transfer", "cheque", "pdc"}
+    if "payment_method" in values and values["payment_method"] not in _VALID_PAYMENT_METHODS:
+        values.pop("payment_method", None)
 
     # Map extracted field names to document_service expected names
     _ensure_date(values, "document_date")
@@ -218,6 +247,15 @@ def approve_review(review_id: int, corrected_fields: dict, user_id: int, company
         base_fields["document_date"] = date.today()
     if review.document_type in ("credit_note", "debit_note") and not base_fields.get("reason"):
         base_fields["reason"] = "Approved by reviewer"
+
+    # Convert AED dirhams → fils for all monetary fields before saving to DB
+    from app.agents.document_extractor import _MONEY_FIELDS as _MF
+    for mf in _MF:
+        if mf in base_fields and base_fields[mf] is not None:
+            try:
+                base_fields[mf] = round(float(base_fields[mf]) * 100)
+            except (ValueError, TypeError):
+                pass
 
     doc = doc_svc.create_document(review.document_type, base_fields, user_id, "review-approval")
     doc_id = doc.id
