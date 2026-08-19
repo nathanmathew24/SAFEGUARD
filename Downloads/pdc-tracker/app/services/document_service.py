@@ -254,6 +254,7 @@ def _apply_extra_fields(doc, data):
         "cheque_number", "bank_name", "cheque_date", "amount",
         "submission_reminder_days", "pdc_status",
         "received_from", "bank_reference",
+        "currency", "exchange_rate_to_aed",
     }
     for field in extra:
         if field in data and hasattr(doc, field):

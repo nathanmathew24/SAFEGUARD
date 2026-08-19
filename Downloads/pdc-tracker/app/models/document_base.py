@@ -25,6 +25,11 @@ class DocumentMixin:
     voided_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     voided_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
+    currency = db.Column(db.String(3), nullable=False, default="AED", server_default="AED")
+    exchange_rate_to_aed = db.Column(
+        db.Numeric(20, 6), nullable=False, default=1.0, server_default="1.0"
+    )
+
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     created_at = db.Column(
         db.DateTime(timezone=True),
@@ -54,6 +59,8 @@ class DocumentMixin:
             "void_reason": self.void_reason,
             "voided_by": self.voided_by,
             "voided_at": self.voided_at.isoformat() if self.voided_at else None,
+            "currency": self.currency,
+            "exchange_rate_to_aed": float(self.exchange_rate_to_aed) if self.exchange_rate_to_aed is not None else 1.0,
             "created_by": self.created_by,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
