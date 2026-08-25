@@ -1,0 +1,24 @@
+# Replace yourdomain.com with your actual domain.
+# Caddy automatically provisions a TLS cert via Let's Encrypt.
+# Remove the tls section for local/staging with a self-signed cert.
+
+yourdomain.com {
+    reverse_proxy web:5000
+
+    # Force HTTPS is automatic with Caddy when a real domain is used.
+    # HTTP → HTTPS redirect is handled automatically.
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        -Server
+    }
+
+    encode gzip
+
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+}
